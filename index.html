@@ -15,7 +15,7 @@
             background: rgba(255, 255, 255, 0.9);
             padding: 10px; border-radius: 8px; text-align: center;
         }
-        input, button {
+        input, select, button {
             padding: 8px; margin: 5px;
             border-radius: 5px; border: 1px solid #ccc;
         }
@@ -24,6 +24,13 @@
 <body>
     <div class="input-container">
         <input type="text" id="message" placeholder="พิมพ์ข้อความบนเสื้อ">
+        <select id="colorPicker">
+            <option value="black">สีดำ</option>
+            <option value="red">สีแดง</option>
+            <option value="blue">สีน้ำเงิน</option>
+            <option value="green">สีเขียว</option>
+            <option value="purple">สีม่วง</option>
+        </select>
         <button onclick="applyText()">เพิ่มข้อความ</button>
     </div>
     <script>
@@ -44,6 +51,14 @@
             directionalLight.position.set(2, 2, 5);
             scene.add(directionalLight);
 
+            // สร้าง Canvas ที่จะใช้เป็นลายเสื้อ
+            textureCanvas = document.createElement("canvas");
+            textureCanvas.width = 1024;
+            textureCanvas.height = 1024;
+            textureCtx = textureCanvas.getContext("2d");
+            textureCtx.fillStyle = "white";
+            textureCtx.fillRect(0, 0, textureCanvas.width, textureCanvas.height);
+            
             // โหลดโมเดลเสื้อ
             const loader = new THREE.OBJLoader();
             loader.load("White_Shirt_Drawing_0221085118_generate.obj", function (object) {
@@ -52,20 +67,15 @@
                 shirt.position.set(0, -1, 0);
                 scene.add(shirt);
 
-                // สร้าง Canvas Texture
-                textureCanvas = document.createElement("canvas");
-                textureCanvas.width = 512;
-                textureCanvas.height = 512;
-                textureCtx = textureCanvas.getContext("2d");
-                textureCtx.fillStyle = "white";
-                textureCtx.fillRect(0, 0, textureCanvas.width, textureCanvas.height);
-
                 texture = new THREE.CanvasTexture(textureCanvas);
-                
+
                 // นำ Texture ไปแปะที่โมเดล
                 shirt.traverse(function (child) {
                     if (child.isMesh) {
-                        child.material = new THREE.MeshStandardMaterial({ map: texture });
+                        child.material = new THREE.MeshStandardMaterial({ 
+                            map: texture,
+                            transparent: false
+                        });
                         child.material.needsUpdate = true;
                     }
                 });
@@ -88,14 +98,15 @@
 
         function applyText() {
             const message = document.getElementById("message").value;
+            const color = document.getElementById("colorPicker").value;
             if (!message || !textureCtx) return;
 
-            // เขียนข้อความลงใน Canvas
+            // ล้างข้อความเก่า แล้ววาดข้อความใหม่
             textureCtx.fillStyle = "white";
             textureCtx.fillRect(0, 0, textureCanvas.width, textureCanvas.height);
-            textureCtx.fillStyle = "black";
-            textureCtx.font = "30px Arial";
-            textureCtx.fillText(message, 100, 256); // ตำแหน่งข้อความ
+            textureCtx.fillStyle = color;
+            textureCtx.font = "50px Arial";
+            textureCtx.fillText(message, 300, 500); // ตำแหน่งข้อความ
 
             texture.needsUpdate = true;
         }
