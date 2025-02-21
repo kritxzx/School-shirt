@@ -31,13 +31,13 @@
             <option value="green">สีเขียว</option>
             <option value="purple">สีม่วง</option>
         </select>
-        <button onclick="applyText()">เพิ่มข้อความ</button>
+        <button id="applyTextBtn">เพิ่มข้อความ</button>
     </div>
     <script>
-        let scene, camera, renderer, shirt, textureCanvas, textureCtx, texture;
+        let scene = new THREE.Scene();
+        let camera, renderer, shirt, textureCanvas, textureCtx, texture;
 
         function init() {
-            scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
             camera.position.set(0, 1, 3);
 
@@ -51,7 +51,6 @@
             directionalLight.position.set(2, 2, 5);
             scene.add(directionalLight);
 
-            // สร้าง Canvas ที่จะใช้เป็นลายเสื้อ
             textureCanvas = document.createElement("canvas");
             textureCanvas.width = 1024;
             textureCanvas.height = 1024;
@@ -59,7 +58,8 @@
             textureCtx.fillStyle = "white";
             textureCtx.fillRect(0, 0, textureCanvas.width, textureCanvas.height);
             
-            // โหลดโมเดลเสื้อ
+            texture = new THREE.CanvasTexture(textureCanvas);
+
             const loader = new THREE.OBJLoader();
             loader.load("White_Shirt_Drawing_0221085118_generate.obj", function (object) {
                 shirt = object;
@@ -67,9 +67,6 @@
                 shirt.position.set(0, -1, 0);
                 scene.add(shirt);
 
-                texture = new THREE.CanvasTexture(textureCanvas);
-
-                // นำ Texture ไปแปะที่โมเดล
                 shirt.traverse(function (child) {
                     if (child.isMesh) {
                         child.material = new THREE.MeshStandardMaterial({ 
@@ -79,6 +76,8 @@
                         child.material.needsUpdate = true;
                     }
                 });
+            }, undefined, function (error) {
+                console.error("เกิดข้อผิดพลาดในการโหลดโมเดล: ", error);
             });
 
             const controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -97,20 +96,29 @@
         }
 
         function applyText() {
+            if (!texture) {
+                console.warn("Texture ยังไม่ถูกสร้างหรือยังไม่โหลดสำเร็จ");
+                return;
+            }
+            
             const message = document.getElementById("message").value;
             const color = document.getElementById("colorPicker").value;
-            if (!message || !textureCtx) return;
+            
+            if (!message || !textureCtx) {
+                console.warn("ไม่มีข้อความหรือ CanvasTexture ไม่ถูกสร้าง");
+                return;
+            }
 
-            // ล้างข้อความเก่า แล้ววาดข้อความใหม่
             textureCtx.fillStyle = "white";
             textureCtx.fillRect(0, 0, textureCanvas.width, textureCanvas.height);
             textureCtx.fillStyle = color;
             textureCtx.font = "50px Arial";
-            textureCtx.fillText(message, 300, 500); // ตำแหน่งข้อความ
-
+            textureCtx.fillText(message, 300, 500);
             texture.needsUpdate = true;
         }
 
+        document.getElementById("applyTextBtn").addEventListener("click", applyText);
+        
         init();
         animate();
     </script>
