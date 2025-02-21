@@ -3,53 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>เขียนเสื้อนักเรียนออนไลน์ 3D</title>
+    <title>เขียนเสื้อนักเรียน 3D</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/loaders/OBJLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/controls/OrbitControls.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;700&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Prompt', sans-serif;
-            background-color: #f5f1e6;
-            margin: 0;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-        }
-        canvas {
-            display: block;
-        }
+        body { margin: 0; overflow: hidden; }
         .input-container {
-            position: absolute;
-            top: 20px;
-            left: 50%;
+            position: absolute; top: 20px; left: 50%;
             transform: translateX(-50%);
             background: rgba(255, 255, 255, 0.9);
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            z-index: 10;
+            padding: 10px; border-radius: 8px; text-align: center;
         }
         input, button {
-            padding: 10px;
-            margin: 5px;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-            font-size: 16px;
-        }
-        button {
-            background-color: #0077cc;
-            color: white;
-            cursor: pointer;
-            border: none;
-        }
-        button:hover {
-            background-color: #005fa3;
+            padding: 8px; margin: 5px;
+            border-radius: 5px; border: 1px solid #ccc;
         }
     </style>
 </head>
@@ -59,7 +27,7 @@
         <button onclick="applyText()">เพิ่มข้อความ</button>
     </div>
     <script>
-        let scene, camera, renderer, shirt;
+        let scene, camera, renderer, shirt, textureCanvas, textureCtx, texture;
 
         function init() {
             scene = new THREE.Scene();
@@ -76,14 +44,31 @@
             directionalLight.position.set(2, 2, 5);
             scene.add(directionalLight);
 
+            // โหลดโมเดลเสื้อ
             const loader = new THREE.OBJLoader();
             loader.load("White_Shirt_Drawing_0221085118_generate.obj", function (object) {
                 shirt = object;
                 shirt.scale.set(1, 1, 1);
                 shirt.position.set(0, -1, 0);
                 scene.add(shirt);
-            }, undefined, function (error) {
-                console.error("เกิดข้อผิดพลาดในการโหลดโมเดล: ", error);
+
+                // สร้าง Canvas Texture
+                textureCanvas = document.createElement("canvas");
+                textureCanvas.width = 512;
+                textureCanvas.height = 512;
+                textureCtx = textureCanvas.getContext("2d");
+                textureCtx.fillStyle = "white";
+                textureCtx.fillRect(0, 0, textureCanvas.width, textureCanvas.height);
+
+                texture = new THREE.CanvasTexture(textureCanvas);
+                
+                // นำ Texture ไปแปะที่โมเดล
+                shirt.traverse(function (child) {
+                    if (child.isMesh) {
+                        child.material = new THREE.MeshStandardMaterial({ map: texture });
+                        child.material.needsUpdate = true;
+                    }
+                });
             });
 
             const controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -103,25 +88,16 @@
 
         function applyText() {
             const message = document.getElementById("message").value;
-            if (shirt) {
-                const textureCanvas = document.createElement("canvas");
-                textureCanvas.width = 512;
-                textureCanvas.height = 512;
-                const ctx = textureCanvas.getContext("2d");
-                ctx.fillStyle = "white";
-                ctx.fillRect(0, 0, textureCanvas.width, textureCanvas.height);
-                ctx.fillStyle = "black";
-                ctx.font = "30px Arial";
-                ctx.fillText(message, 50, 256);
+            if (!message || !textureCtx) return;
 
-                const texture = new THREE.CanvasTexture(textureCanvas);
-                shirt.traverse(function (child) {
-                    if (child.isMesh) {
-                        child.material = new THREE.MeshStandardMaterial({ map: texture });
-                        child.material.needsUpdate = true;
-                    }
-                });
-            }
+            // เขียนข้อความลงใน Canvas
+            textureCtx.fillStyle = "white";
+            textureCtx.fillRect(0, 0, textureCanvas.width, textureCanvas.height);
+            textureCtx.fillStyle = "black";
+            textureCtx.font = "30px Arial";
+            textureCtx.fillText(message, 100, 256); // ตำแหน่งข้อความ
+
+            texture.needsUpdate = true;
         }
 
         init();
